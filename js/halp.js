@@ -1,5 +1,3 @@
-$(document).ready(function(){
-	//draw();
 var canvas;
 var ctx;
 var floorCtx;
@@ -13,50 +11,31 @@ var PLAYHEIGHT = 400;
 var PLAYWIDTH = 800;
 
 var obsY = 400;
-var obsX = 400;
+var obsX = 600;
 
 var running = false;
 
-var player = new Circle(x, y, 10);
-var obstacle = new Obstacle(obsX, obsY, -20);
-var obstacle2 = new Obstacle(obsX, obsY, -20);
+$(document).ready(function(){
+	//draw();
+
+var player = new Player(x, y, 10);
+
+var obstacles = [];
+
+// console.log(new Obstacletest(12,15,10));
+
+obstacles.push(new Obstacle(obsX, obsY, -20));
+
+obstacles.push(new Obstacle(800, obsY, -20));
+
+// for(var i = 0; i < obstacles.length; i++) {
+// 		console.log(obstacles[i]);
+// 	}
+
 
 var gameover = false;
 
-function Circle (x, y, r) {
-  this.coords = {
-   	x: x,
-    y: y,
-    r: r
-  }
 
-  this.draw = function(x, y, r) {
-  	ctx.beginPath();
-		ctx.arc(x, y, r, 0, Math.PI*2, true);
-		ctx.fill();
-		this.coords = {
-			x: x,
-			y: y,
-			r: r
-		};
-  }
-}
-
-function Obstacle(x, y, r) {
-	this.coords = {
-		x: x,
-		y: y,
-		r: r
-	};
-
-	this.draw = function() {
-		ctx.beginPath();
-		ctx.rect(this.coords.x,this.coords.y,this.coords.r,this.coords.r);
-		ctx.closePath();
-		ctx.fill();
-		ctx.stroke();
-	}
-}
 
 function rect(x,y,w,h) {
 	ctx.beginPath();
@@ -90,23 +69,14 @@ function doKeyDown(evt){
 function obstaclePath() {
 	if(!running) {
 		var moveObstacle = setInterval(function() {
-			intersect(player.coords, obstacle.coords);
-			intersect(player.coords, obstacle2.coords);
-
-			if(obstacle.coords.x - dx < 50) {
-				obstacle.coords.x = 400;
-			} else {
-				obstacle.coords.x -= dx;
-			}
-
-			if(bla > 800) {
-				if(obstacle2.coords.x - dx < 50) {
-					obstacle2.coords.x = 400;
+			for(var i = 0; i < obstacles.length; i++) {
+				intersect(player.coords, obstacles[i].coords);
+				if(obstacles[i].coords.x - dx < 50) {
+					obstacles[i].coords.x = 400;
 				} else {
-					obstacle2.coords.x -= dx;
+					obstacles[i].coords.x -= dx;
 				}
 			}
-
 		}, 20);	
 		running = true;
 	}
@@ -163,15 +133,9 @@ function draw() {
 	player.draw(x, y, 10);
 
 	ctx.fillStyle = "blue";
-	obstacle.draw();
-
-	if(bla > 800) {
-		ctx.fillStyle = "black";
-		obstacle2.draw();
-	} else {
-		bla++;
+	for(var i = 0; i < obstacles.length; i++) {
+		obstacles[i].draw();
 	}
-
 
 	obstaclePath();
 }
