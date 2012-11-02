@@ -1,159 +1,103 @@
-var canvas;
-var ctx;
-var floorCtx;
-var dx = 5;
-var dy = 5;
-var x = 200;
-var y = 390;
-var WIDTH = 800;
-var HEIGHT = 600;
-var PLAYHEIGHT = 400;
-var PLAYWIDTH = 800;
+var halp = {};
 
-var obsY = 400;
-var obsX = 600;
+halp.canvas = null;
+halp.ctx = null;
+halp.floorCtx = null;
+halp.dx = 5;
+halp.dy = 5;
+halp.x = 200;
+halp.y = 346;
+halp.WIDTH = 800;
+halp.HEIGHT = 600;
+halp.PLAYHEIGHT = 346;
+halp.PLAYWIDTH = 800;
 
-var running = false;
+halp.obsY = 400;
+halp.obsX = 800;
+halp.obsHeight = 34;
+halp.obsWidth = 40;
 
-$(document).ready(function(){
-	//draw();
+halp.running = false;
 
-var player = new Player(x, y, 10);
+halp.obstacles = [];
 
-var obstacles = [];
+halp.player = null;
 
-// console.log(new Obstacletest(12,15,10));
+halp.gameover = false;
 
-obstacles.push(new Obstacle(obsX, obsY, -20));
+// Autoset animation to frames
+window.requestAnimFrame = (function(){
+  return  window.requestAnimationFrame       ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame    ||
+          window.oRequestAnimationFrame      ||
+          window.msRequestAnimationFrame     ||
+          function( callback ){
+            window.setTimeout(callback, 1000 / 60);
+          };
+})();
 
-obstacles.push(new Obstacle(800, obsY, -20));
+// Load and set up resources
+function onload() {
+	halp.player = new Player(halp.x, halp.y, 96, 54);
 
-// for(var i = 0; i < obstacles.length; i++) {
-// 		console.log(obstacles[i]);
-// 	}
+	halp.obstacles.push(new Obstacle(halp.obsX-halp.obsWidth, halp.obsY-halp.obsHeight, halp.obsWidth, halp.obsHeight));
 
+	//halp.obstacles.push(new Obstacle(800, halp.obsY, -20));
 
-var gameover = false;
+	halp.canvas = document.getElementById("halp");
+	halp.ctx = halp.canvas.getContext("2d");
 
-
-
-function rect(x,y,w,h) {
-	ctx.beginPath();
-	ctx.rect(x,y,w,h);
-	ctx.closePath();
-	ctx.fill();
-	ctx.stroke();
+	setTimeout(update, 1000/60);
 }
 
-function floorRect() {
-	ctx.beginPath();
-	ctx.rect(0,400,800,200);
-	ctx.closePath();
-	ctx.fill()
-	ctx.stroke();
-}
 
 function clear() {
-	ctx.clearRect(0, 0, WIDTH, HEIGHT);
+	halp.ctx.clearRect(0, 0, halp.WIDTH, halp.HEIGHT);
 }
-
-function doKeyDown(evt){
-	switch (evt.keyCode) {
-		case 32:  /* Space pressed */
-			jump();
-			break;
-	}
-	
-}
-
-function obstaclePath() {
-	if(!running) {
-		var moveObstacle = setInterval(function() {
-			for(var i = 0; i < obstacles.length; i++) {
-				intersect(player.coords, obstacles[i].coords);
-				if(obstacles[i].coords.x - dx < 50) {
-					obstacles[i].coords.x = 400;
-				} else {
-					obstacles[i].coords.x -= dx;
-				}
-			}
-		}, 20);	
-		running = true;
-	}
-}
-
-function intersect(player, obstacle) {
-	var pXmin = player.x+player.r;
-	var pXmax = player.x+player.r+player.r+player.r;
-	var pYmin = player.y+player.r;
-	var pYmax = player.y+player.r+player.r+player.r;
-
-	var oXmin = obstacle.x;
-	var oXmax = obstacle.x-obstacle.r;
-	var oYmin = obstacle.y;
-	var oYmax = obstacle.y-obstacle.r;
-
-	if(oXmax >= pXmin && oXmin <= pXmax && oYmax >= pYmin && oYmin <= pYmax) {
-		gameover = true;
-	}
-}
-
-function jump() {
-	window.removeEventListener('keydown',doKeyDown,true);
-	var reachedTop = false;
-	var jumpState = setInterval(function() {
-		//clear();
-		if (y - dy < 320) {
-			reachedTop = true;
-		} else if (y + dy > (PLAYHEIGHT-15) && reachedTop) {
-			clearInterval(jumpState);
-			window.addEventListener('keydown',doKeyDown,true);
-		}
-
-		var delta = (reachedTop) ? y += dy : y -= dy;
-
-		ctx.fillStyle = "purple";
-		player.draw(x, delta, 10);
-	},20);
-}
-
-var bla = 0;
 
 function draw() {
 	clear();
-	ctx.fillStyle = "white";
-	ctx.strokeStyle = "black";
-	rect(0,0,WIDTH,HEIGHT);
+	halp.ctx.fillStyle = "black";
+	halp.ctx.strokeStyle = "black";
+	rect(0,0,halp.WIDTH,halp.HEIGHT);
 
-	ctx.fillStyle = "yellow";
+	halp.ctx.fillStyle = "yellow";
 	floorRect();
 	
 
-	ctx.fillStyle = "purple";
-	player.draw(x, y, 10);
+	halp.ctx.fillStyle = "purple";
+	halp.player.draw();
 
-	ctx.fillStyle = "blue";
-	for(var i = 0; i < obstacles.length; i++) {
-		obstacles[i].draw();
+	halp.ctx.fillStyle = "blue";
+	for(var i = 0; i < halp.obstacles.length; i++) {
+		halp.obstacles[i].draw();
 	}
 
 	obstaclePath();
 }
 
-function init() {
-	canvas = document.getElementById("halp");
-	ctx = canvas.getContext("2d");
-	var drawing = setInterval(function() {
-		if(gameover) {
-			clearInterval(drawing);
-			alert("YOU LOSE");
-		}
-		draw();
-	}, 10);
-	
+var frame = 0;
+var lastUpdateTime = 0;
+var acDelta = 0;
+var msPerFrame = 10;
+
+function update() {
+    if(!halp.gameover) {
+    	requestAnimFrame(update);
+
+    	var delta = Date.now() - lastUpdateTime;
+	    if (acDelta > msPerFrame) {
+	        acDelta = 0;
+	        draw();
+	        frame++;
+	        if (frame >= 6) frame = 0;
+	    } else {
+	        acDelta += delta;
+	    }	
+
+	    lastUpdateTime = Date.now();
+    } else {
+    	alert("you lose");	
+    }
 }
-
-init();
-window.addEventListener('keydown',doKeyDown,true);
-
-});
